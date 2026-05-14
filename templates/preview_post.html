@@ -14,6 +14,37 @@
       </p>
       <p style="line-height:1.75;">{{ post.texto }}</p>
       <p><strong>Hashtags:</strong> {{ post.hashtags }}</p>
+      <div class="detail-list">
+        <div class="detail-item">
+          <strong>Origen del contenido</strong>
+          <span>{{ post.origen_contenido or 'generico' }}</span>
+        </div>
+        <div class="detail-item">
+          <strong>CTA</strong>
+          <span>{{ post.cta or 'Sin CTA específico' }}</span>
+        </div>
+        <div class="detail-item">
+          <strong>Producto asociado</strong>
+          <span>{{ post.producto_nombre or 'No asociado' }}{% if post.producto_id %} {% endif %}{% if post.producto_id %}(ID: {{ post.producto_id }}){% endif %}</span>
+        </div>
+        <div class="detail-item">
+          <strong>Categoría asociada</strong>
+          <span>{{ post.categoria_nombre or 'No asociada' }}</span>
+        </div>
+        <div class="detail-item">
+          <strong>Imagen de producto</strong>
+          {% if post.imagen_producto_path %}
+            <img
+              class="product-image-inline"
+              src="{{ url_for('preview_product_image', post_id=post.id) }}"
+              alt="Imagen de producto asociada a {{ post.titulo }}"
+            >
+            <div class="path-box" style="margin-top:0.75rem;">{{ post.imagen_producto_path }}</div>
+          {% else %}
+            <span>No disponible</span>
+          {% endif %}
+        </div>
+      </div>
       <p class="meta">La base externa de Nexar Comercio se usa solo para lectura. Esta pantalla solo regenera archivos en `static/generated/` y actualiza la base local `data/calendario.db`.</p>
       <div class="preview-actions">
         <form method="post" action="{{ url_for('generate_post_image_route', post_id=post.id) }}">

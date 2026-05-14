@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
-from flask import Flask, flash, redirect, render_template, request, url_for
+from flask import Flask, abort, flash, redirect, render_template, request, send_file, url_for
 
 from config import Config
 from database import init_db
@@ -109,6 +109,19 @@ def create_app() -> Flask:
             brand_name=app.config["BRAND_NAME"],
             selected_month=datetime.fromisoformat(post["fecha"]).strftime("%Y-%m"),
         )
+
+    @app.route("/post/<int:post_id>/imagen-producto")
+    def preview_product_image(post_id: int):
+        post = get_post_by_id(app.config["DATABASE_PATH"], post_id)
+        if not post or not post.get("imagen_producto_path"):
+            abort(404)
+        image_path = post["imagen_producto_path"]
+        if not image_path:
+            abort(404)
+        try:
+            return send_file(image_path)
+        except FileNotFoundError:
+            abort(404)
 
     @app.post("/post/<int:post_id>/generar-imagen")
     def generate_post_image_route(post_id: int):

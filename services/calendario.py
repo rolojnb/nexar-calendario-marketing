@@ -168,10 +168,12 @@ def generate_month_content(
             cursor = connection.execute(
                 """
                 INSERT INTO marketing_posts (
-                    fecha, canal, tipo, titulo, texto, hashtags,
-                    imagen_path, fecha_especial_nombre, prioridad, estado, created_at
+                    fecha, canal, tipo, titulo, texto, hashtags, cta,
+                    imagen_path, producto_nombre, producto_id, categoria_nombre,
+                    imagen_producto_path, origen_contenido, fecha_especial_nombre,
+                    prioridad, estado, created_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     post["fecha"],
@@ -180,7 +182,13 @@ def generate_month_content(
                     post["titulo"],
                     post["texto"],
                     post["hashtags"],
+                    post.get("cta", ""),
                     "",
+                    post.get("producto_nombre", ""),
+                    post.get("producto_id", ""),
+                    post.get("categoria_nombre", ""),
+                    post.get("imagen_producto_path", ""),
+                    post.get("origen_contenido", "generico"),
                     post.get("fecha_especial_nombre", ""),
                     post.get("prioridad", ""),
                     post["estado"],

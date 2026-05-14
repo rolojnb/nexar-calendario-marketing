@@ -23,7 +23,13 @@ def init_db(db_path: str) -> None:
                 titulo TEXT NOT NULL,
                 texto TEXT NOT NULL,
                 hashtags TEXT DEFAULT '',
+                cta TEXT DEFAULT '',
                 imagen_path TEXT DEFAULT '',
+                producto_nombre TEXT DEFAULT '',
+                producto_id TEXT DEFAULT '',
+                categoria_nombre TEXT DEFAULT '',
+                imagen_producto_path TEXT DEFAULT '',
+                origen_contenido TEXT DEFAULT 'generico',
                 fecha_especial_nombre TEXT DEFAULT '',
                 prioridad TEXT DEFAULT '',
                 estado TEXT DEFAULT 'borrador',
@@ -42,5 +48,29 @@ def init_db(db_path: str) -> None:
         if "prioridad" not in columns:
             connection.execute(
                 "ALTER TABLE marketing_posts ADD COLUMN prioridad TEXT DEFAULT ''"
+            )
+        if "cta" not in columns:
+            connection.execute(
+                "ALTER TABLE marketing_posts ADD COLUMN cta TEXT DEFAULT ''"
+            )
+        if "producto_nombre" not in columns:
+            connection.execute(
+                "ALTER TABLE marketing_posts ADD COLUMN producto_nombre TEXT DEFAULT ''"
+            )
+        if "producto_id" not in columns:
+            connection.execute(
+                "ALTER TABLE marketing_posts ADD COLUMN producto_id TEXT DEFAULT ''"
+            )
+        if "categoria_nombre" not in columns:
+            connection.execute(
+                "ALTER TABLE marketing_posts ADD COLUMN categoria_nombre TEXT DEFAULT ''"
+            )
+        if "imagen_producto_path" not in columns:
+            connection.execute(
+                "ALTER TABLE marketing_posts ADD COLUMN imagen_producto_path TEXT DEFAULT ''"
+            )
+        if "origen_contenido" not in columns:
+            connection.execute(
+                "ALTER TABLE marketing_posts ADD COLUMN origen_contenido TEXT DEFAULT 'generico'"
             )
         connection.commit()

@@ -1,12 +1,13 @@
 # nexar-calendario-marketing
 
-Aplicación Flask independiente para generar un calendario mensual de contenido para WhatsApp Estados, Instagram Stories e Instagram Feed usando una base SQLite propia y lectura opcional desde una base externa de Nexar Comercio o Nexar Tienda.
+Aplicación Flask independiente para generar un calendario mensual de contenido para WhatsApp Estados, Instagram Stories e Instagram Feed usando una base SQLite propia y lectura opcional desde una base externa de Nexar Comercio.
 
 ## Características
 
 - No modifica repositorios externos: solo lectura si la base existe.
 - Nexar Comercio se abre estrictamente en modo `read-only` usando SQLite URI `mode=ro`.
 - Genera publicaciones para un mes completo con plantillas simples sin IA.
+- Puede basar parte del calendario en productos, categorías, stock y ventas reales si existen en la base externa.
 - Crea imágenes automáticamente con Pillow.
 - Guarda el contenido y el historial en `data/calendario.db`.
 - Sigue funcionando aunque la base externa no esté configurada o no exista.
@@ -49,7 +50,7 @@ La app quedará disponible en `http://127.0.0.1:5000`.
 ## Variables de entorno
 
 - `NEXAR_COMERCIO_PATH`: ruta opcional al repo externo.
-- `NEXAR_COMERCIO_DB`: ruta al archivo SQLite externo en modo solo lectura.
+- `NEXAR_COMERCIO_DB`: ruta al archivo SQLite externo de Nexar Comercio en modo solo lectura.
 - `BRAND_NAME`: nombre comercial a usar en copies e imágenes.
 - `BRAND_PRIMARY`: color principal hexadecimal.
 - `BRAND_SECONDARY`: color secundario hexadecimal.
@@ -72,8 +73,36 @@ La app quedará disponible en `http://127.0.0.1:5000`.
 
 - La base externa de Nexar Comercio se abre únicamente desde `services/nexar_importer.py`.
 - La conexión usa SQLite en modo solo lectura con `sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)`.
-- Ese módulo no hace `commit()` ni ejecuta escrituras sobre Nexar Comercio.
+- Ese módulo no hace `commit()` ni ejecuta `INSERT`, `UPDATE`, `DELETE`, `ALTER`, `DROP` ni ninguna escritura sobre Nexar Comercio.
 - Toda escritura de la app ocurre únicamente en `data/calendario.db`.
+- Las migraciones de `marketing_posts` usan `ALTER TABLE` solo sobre `data/calendario.db`.
+
+## Configurar `NEXAR_COMERCIO_DB`
+
+1. Ubicá el archivo SQLite real de Nexar Comercio.
+2. Definí la ruta en `.env`:
+
+```bash
+NEXAR_COMERCIO_DB=/ruta/completa/a/nexar_comercio.db
+```
+
+3. Reiniciá la app.
+
+Si la ruta no existe, si la base no abre o si faltan tablas esperadas, la aplicación sigue funcionando con contenido genérico.
+
+## Datos externos que intenta leer
+
+El importador trabaja en modo tolerante al esquema. Si existen, intenta leer:
+
+- `productos`
+- `categorias`
+- `ventas`
+- `detalle_ventas`
+- columnas de `stock`
+- columnas de `precio`
+- `imagen_path` o variantes comunes de ruta de imagen
+
+Si alguna tabla o columna no existe, la app omite esa parte y sigue con fallbacks seguros.
 
 ## Sistema visual
 
@@ -89,6 +118,29 @@ La app quedará disponible en `http://127.0.0.1:5000`.
 - Las publicaciones especiales pueden usar los tipos `fecha_especial`, `campana` y `temporada`.
 - El calendario marca visualmente esos días y muestra nombre y prioridad para facilitar la revisión.
 
+## Motor de contenido comercial
+
+`services/motor_contenido.py` decide qué publicación crear en este orden:
+
+1. Fecha especial.
+2. Producto más vendido.
+3. Producto con stock alto.
+4. Producto con bajo movimiento.
+5. Categoría destacada.
+6. Tip genérico.
+7. Promoción genérica.
+
+Cada post guarda además:
+
+- `cta`
+- `producto_nombre`
+- `producto_id`
+- `categoria_nombre`
+- `imagen_producto_path`
+- `origen_contenido`
+
+Eso permite que el calendario y la preview distingan el contenido generado desde datos reales.
+
 ## Generación de imágenes
 
 - Generación individual: desde cada preview podés usar `POST /post/<id>/generar-imagen`.
@@ -96,9 +148,9 @@ La app quedará disponible en `http://127.0.0.1:5000`.
 - Regeneración masiva: la misma ruta acepta `regenerar=true` para rehacer todas las imágenes del mes.
 - Los archivos se guardan por mes en `static/generated/YYYY-MM/`.
 - El formato de nombre usa `post_<id>_<canal>_<tipo>.png` cuando el post ya existe en SQLite.
+- Si `imagen_producto_path` existe y el archivo está disponible, se integra a la pieza visual sin deformarlo.
+- Si la imagen no existe o no puede abrirse, el diseño sigue generándose de forma normal.
 
-## Próximos pasos
+## Resultado esperado
 
-- Integrar IA para enriquecer copies y variantes por canal.
-- Conectar métricas reales de ventas y productos destacados.
-- Agregar exportación por lote para diseño o publicación.
+Al generar un mes, parte de las publicaciones puede salir basada en productos y categorías reales de Nexar Comercio cuando la base externa tenga información suficiente. Si no la tiene, el calendario se completa igual con contenido genérico y fechas especiales.

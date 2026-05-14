@@ -3,7 +3,7 @@ from pathlib import Path
 import re
 from uuid import uuid4
 
-from PIL import Image, ImageColor, ImageDraw, ImageFilter, ImageFont
+from PIL import Image, ImageColor, ImageDraw, ImageFilter, ImageFont, ImageOps
 
 from services.template_styles import get_template_style
 
@@ -14,6 +14,8 @@ FORMATS = {
     "instagram_feed": ("feed_vertical", (1080, 1350)),
     "instagram_feed_cuadrado": ("feed_cuadrado", (1080, 1080)),
 }
+
+LANCZOS = getattr(getattr(Image, "Resampling", Image), "LANCZOS")
 
 FORMAT_SIZES = {
     "story": {
@@ -215,6 +217,24 @@ def _draw_logo(base: Image.Image, logo_path: str, x: int, y: int, logo_size: int
     base.alpha_composite(holder, (x, y))
 
 
+def _load_product_image(product_image_path: str, box_size: tuple[int, int]) -> Image.Image | None:
+    if not product_image_path:
+        return None
+
+    candidate = Path(product_image_path).expanduser()
+    if not candidate.is_absolute():
+        candidate = Path.cwd() / candidate
+    if not candidate.exists():
+        return None
+
+    try:
+        image = Image.open(candidate).convert("RGBA")
+    except OSError:
+        return None
+
+    return ImageOps.fit(image, box_size, method=LANCZOS, centering=(0.5, 0.5))
+
+
 def _channel_to_format(channel: str) -> tuple[str, tuple[int, int]]:
     return FORMATS.get(channel, FORMATS["instagram_story"])
 
@@ -318,6 +338,9 @@ def generate_post_image(post: dict, generated_dir: str, brand_settings: dict) ->
     inner_right = width - margin - metrics["panel_padding"]
     max_text_width = inner_right - inner_left
     y = margin + metrics["panel_padding"]
+    product_image = None
+    media_top = 0
+    media_bottom = 0
 
     logo_size = metrics["logo"]
     _draw_logo(base, brand_settings.get("logo_path", ""), inner_right - logo_size, y, logo_size)
@@ -341,6 +364,32 @@ def generate_post_image(post: dict, generated_dir: str, brand_settings: dict) ->
     )
     draw.text((pill_left + 16, pill_top + 7), icon_text, font=icon_font, fill=soft_ink)
     y = eyebrow_bbox[3] + max(22, metrics["panel_padding"] // 2)
+
+    if post.get("imagen_producto_path"):
+        media_width = max_text_width if format_name == "story" else int(max_text_width * 0.42)
+        media_height = int(height * (0.25 if format_name == "story" else 0.22))
+        product_image = _load_product_image(post.get("imagen_producto_path", ""), (media_width, media_height))
+        if product_image is not None:
+            frame = Image.new("RGBA", (media_width + 24, media_height + 24), (0, 0, 0, 0))
+            frame_draw = ImageDraw.Draw(frame)
+            frame_draw.rounded_rectangle(
+                (0, 0, media_width + 24, media_height + 24),
+                radius=28,
+                fill=_with_alpha((255, 255, 255), 224),
+                outline=_with_alpha(_mix(primary, white, 0.32), 220),
+                width=2,
+            )
+            mask = Image.new("L", (media_width, media_height), 0)
+            mask_draw = ImageDraw.Draw(mask)
+            mask_draw.rounded_rectangle((0, 0, media_width, media_height), radius=22, fill=255)
+            product_holder = Image.new("RGBA", (media_width, media_height), (0, 0, 0, 0))
+            product_holder.paste(product_image, (0, 0), mask)
+            frame.alpha_composite(product_holder, (12, 12))
+            media_left = inner_left
+            media_top = y
+            base.alpha_composite(frame, (media_left, media_top))
+            media_bottom = media_top + frame.height
+            y = media_bottom + max(24, metrics["panel_padding"] // 2)
 
     title_text = post["titulo"].upper() if style.title_case == "upper" else post["titulo"]
     title_font, wrapped_title = _fit_text(
@@ -398,7 +447,7 @@ def generate_post_image(post: dict, generated_dir: str, brand_settings: dict) ->
         fill=cta_fill,
     )
     cta_font = _load_font(font_family, metrics["meta"] + 2, bold=True)
-    cta_text = style.cta
+    cta_text = post.get("cta") or style.cta
     cta_bbox = draw.textbbox((0, 0), cta_text, font=cta_font)
     cta_text_x = inner_left + 32
     cta_text_y = cta_top + (cta_height - (cta_bbox[3] - cta_bbox[1])) // 2 - 2

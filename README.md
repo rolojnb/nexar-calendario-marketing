@@ -82,6 +82,13 @@ La app quedará disponible en `http://127.0.0.1:5000`.
 - Si existe `static/branding/logo.png`, se incorpora automáticamente.
 - Si existen fondos en `static/branding/fondos/`, se usan como apoyo visual sin romper la app si faltan.
 
+## Fechas especiales
+
+- El módulo `services/fechas_especiales.py` concentra fechas comerciales fijas y fechas configurables por año.
+- Al generar un mes, si un día coincide con una fecha especial, el sistema prioriza esa publicación por sobre la lógica genérica.
+- Las publicaciones especiales pueden usar los tipos `fecha_especial`, `campana` y `temporada`.
+- El calendario marca visualmente esos días y muestra nombre y prioridad para facilitar la revisión.
+
 ## Generación de imágenes
 
 - Generación individual: desde cada preview podés usar `POST /post/<id>/generar-imagen`.

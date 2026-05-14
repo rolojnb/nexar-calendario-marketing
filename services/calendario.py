@@ -5,6 +5,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 from database import get_connection
+from services.fechas_especiales import obtener_fecha_especial
 from services.generador_imagenes import generate_post_image
 from services.generador_posts import generate_month_posts
 from services.nexar_importer import load_external_context
@@ -124,11 +125,13 @@ def build_calendar_matrix(year: int, month: int, posts: list[dict]) -> list[list
         days: list[dict] = []
         for day in week:
             iso_day = day.isoformat()
+            special_date = obtener_fecha_especial(day)
             days.append(
                 {
                     "date": day,
                     "is_current_month": day.month == month,
                     "posts": posts_by_day.get(iso_day, []),
+                    "special_date": special_date,
                 }
             )
         weeks.append(days)
@@ -166,9 +169,9 @@ def generate_month_content(
                 """
                 INSERT INTO marketing_posts (
                     fecha, canal, tipo, titulo, texto, hashtags,
-                    imagen_path, estado, created_at
+                    imagen_path, fecha_especial_nombre, prioridad, estado, created_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     post["fecha"],
@@ -178,6 +181,8 @@ def generate_month_content(
                     post["texto"],
                     post["hashtags"],
                     "",
+                    post.get("fecha_especial_nombre", ""),
+                    post.get("prioridad", ""),
                     post["estado"],
                     created_at,
                 ),

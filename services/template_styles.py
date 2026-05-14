@@ -66,6 +66,36 @@ POST_TYPE_STYLES: dict[str, TemplateStyle] = {
         icon_text="INFO",
         visual_tone="claro y limpio",
     ),
+    "fecha_especial": TemplateStyle(
+        name="fecha_especial",
+        eyebrow="FECHA CLAVE",
+        accent_mode="spotlight",
+        overlay_opacity=48,
+        title_case="normal",
+        cta="Aprovecha el momento comercial",
+        icon_text="EVENTO",
+        visual_tone="comercial y oportuno",
+    ),
+    "campana": TemplateStyle(
+        name="campana",
+        eyebrow="CAMPANA",
+        accent_mode="bold",
+        overlay_opacity=64,
+        title_case="upper",
+        cta="Activa la campana hoy",
+        icon_text="CAMP",
+        visual_tone="intenso y vendedor",
+    ),
+    "temporada": TemplateStyle(
+        name="temporada",
+        eyebrow="TEMPORADA",
+        accent_mode="modern",
+        overlay_opacity=52,
+        title_case="normal",
+        cta="Sumate a la temporada",
+        icon_text="SEASON",
+        visual_tone="estacional",
+    ),
 }
 
 

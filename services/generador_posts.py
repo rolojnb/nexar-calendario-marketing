@@ -3,8 +3,16 @@ from __future__ import annotations
 import calendar
 from datetime import date
 
+from services.fechas_especiales import obtener_fecha_especial
 
-POST_TYPES = ("promocion", "tip", "producto_destacado", "recordatorio", "novedad")
+
+POST_TYPES = (
+    "producto_destacado",
+    "tip",
+    "promocion",
+    "recordatorio",
+    "novedad",
+)
 CHANNEL_ROTATION = (
     "whatsapp_estado",
     "instagram_story",
@@ -54,7 +62,7 @@ def _build_copy(post_type: str, brand_name: str, external_context: dict, slot_in
         "tip": {
             "titulo": f"Tip rapido sobre {category_name}",
             "texto": (
-                f"Compartí un consejo simple vinculado a {category_name} para generar valor "
+                f"Comparti un consejo simple vinculado a {category_name} para generar valor "
                 f"y mantener activa la comunidad de {brand_name}."
             ),
             "hashtags": "#tip #consejo #ventas",
@@ -62,7 +70,7 @@ def _build_copy(post_type: str, brand_name: str, external_context: dict, slot_in
         "producto_destacado": {
             "titulo": f"{product_name} destacado",
             "texto": (
-                f"Mostrá beneficios, usos y una llamada a la acción directa para que "
+                f"Mostra beneficios, usos y una llamada a la accion directa para que "
                 f"{product_name} gane protagonismo en {brand_name}."
             ),
             "hashtags": "#producto #destacado #emprendedores",
@@ -70,7 +78,7 @@ def _build_copy(post_type: str, brand_name: str, external_context: dict, slot_in
         "recordatorio": {
             "titulo": "Recordatorio para tus clientes",
             "texto": (
-                "Aprovechá para recordar horarios, medios de pago, envíos o promociones vigentes "
+                "Aprovecha para recordar horarios, medios de pago, envios o promociones vigentes "
                 f"de {brand_name}."
             ),
             "hashtags": "#recordatorio #clientes #negocio",
@@ -78,7 +86,7 @@ def _build_copy(post_type: str, brand_name: str, external_context: dict, slot_in
         "novedad": {
             "titulo": f"Novedades en {brand_name}",
             "texto": (
-                f"Comunicá ingresos recientes, cambios de temporada o una novedad de la línea "
+                f"Comunica ingresos recientes, cambios de temporada o una novedad de la linea "
                 f"{category_name}."
             ),
             "hashtags": "#novedad #lanzamiento #tienda",
@@ -87,28 +95,51 @@ def _build_copy(post_type: str, brand_name: str, external_context: dict, slot_in
     return variants[post_type]
 
 
+def _build_special_copy(special_date: dict, brand_name: str) -> dict:
+    return {
+        "titulo": special_date["sugerencia_titulo"],
+        "texto": f"{special_date['sugerencia_texto']} {brand_name} puede aprovechar este momento comercial.",
+        "hashtags": special_date["sugerencia_hashtags"],
+    }
+
+
 def generate_month_posts(year: int, month: int, brand_name: str, external_context: dict) -> list[dict]:
     _, last_day = calendar.monthrange(year, month)
     planned_days = [1, 3, 5, 8, 10, 12, 15, 17, 19, 22, 24, 26]
-    valid_days = [day for day in planned_days if day <= last_day]
+    special_days = []
+    for day in range(1, last_day + 1):
+        current_date = date(year, month, day)
+        if obtener_fecha_especial(current_date):
+            special_days.append(day)
+
+    valid_days = sorted({day for day in planned_days if day <= last_day} | set(special_days))
 
     posts: list[dict] = []
     for slot_index, day in enumerate(valid_days):
-        post_type = POST_TYPES[slot_index % len(POST_TYPES)]
+        current_date = date(year, month, day)
+        special_date = obtener_fecha_especial(current_date)
         channel = CHANNEL_ROTATION[slot_index % len(CHANNEL_ROTATION)]
-        copy = _build_copy(post_type, brand_name, external_context, slot_index)
+
+        if special_date:
+            copy = _build_special_copy(special_date, brand_name)
+            post_type = special_date["tipo"]
+        else:
+            post_type = POST_TYPES[slot_index % len(POST_TYPES)]
+            copy = _build_copy(post_type, brand_name, external_context, slot_index)
 
         posts.append(
             {
-                "fecha": date(year, month, day).isoformat(),
+                "fecha": current_date.isoformat(),
                 "canal": channel,
                 "tipo": post_type,
                 "titulo": copy["titulo"],
                 "texto": copy["texto"],
                 "hashtags": copy["hashtags"],
                 "estado": "borrador",
+                "fecha_especial_nombre": special_date["nombre"] if special_date else "",
+                "prioridad": special_date["prioridad"] if special_date else "",
             }
         )
 
-    # Punto claro para futura integración de IA generativa sin cambiar el flujo del calendario.
+    # Punto claro para futura integracion de IA generativa sin cambiar el flujo del calendario.
     return posts

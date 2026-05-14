@@ -82,6 +82,10 @@
         min-height: 180px;
         padding: 0.95rem;
       }
+      .day.is-special-day {
+        border-color: rgba(245, 158, 11, 0.45);
+        box-shadow: 0 16px 34px rgba(245, 158, 11, 0.12);
+      }
       .day.is-other-month { opacity: 0.45; }
       .day-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; }
       .badge {
@@ -102,6 +106,28 @@
       }
       .post-item small { color: var(--muted); display: block; margin-bottom: 0.35rem; }
       .post-item strong { display: block; margin-bottom: 0.35rem; }
+      .special-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: rgba(245, 158, 11, 0.16);
+        color: #9a3412;
+        border-radius: 999px;
+        padding: 0.3rem 0.7rem;
+        font-size: 0.74rem;
+        font-weight: 700;
+        margin-bottom: 0.75rem;
+      }
+      .priority-tag {
+        display: inline-block;
+        background: rgba(29, 78, 216, 0.1);
+        color: var(--primary);
+        border-radius: 999px;
+        padding: 0.2rem 0.55rem;
+        font-size: 0.7rem;
+        font-weight: 700;
+        margin-left: 0.35rem;
+      }
       .preview-layout {
         display: grid;
         grid-template-columns: 1.1fr 0.9fr;

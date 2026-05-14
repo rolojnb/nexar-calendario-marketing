@@ -24,9 +24,23 @@ def init_db(db_path: str) -> None:
                 texto TEXT NOT NULL,
                 hashtags TEXT DEFAULT '',
                 imagen_path TEXT DEFAULT '',
+                fecha_especial_nombre TEXT DEFAULT '',
+                prioridad TEXT DEFAULT '',
                 estado TEXT DEFAULT 'borrador',
                 created_at TEXT NOT NULL
             )
             """
         )
+        columns = {
+            row["name"]
+            for row in connection.execute("PRAGMA table_info(marketing_posts)").fetchall()
+        }
+        if "fecha_especial_nombre" not in columns:
+            connection.execute(
+                "ALTER TABLE marketing_posts ADD COLUMN fecha_especial_nombre TEXT DEFAULT ''"
+            )
+        if "prioridad" not in columns:
+            connection.execute(
+                "ALTER TABLE marketing_posts ADD COLUMN prioridad TEXT DEFAULT ''"
+            )
         connection.commit()

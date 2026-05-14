@@ -47,18 +47,35 @@
     {% for week in calendar_weeks %}
       <div class="grid" style="margin-bottom: 1rem;">
         {% for day in week %}
-          <article class="card day {% if not day.is_current_month %}is-other-month{% endif %}">
+          <article class="card day {% if not day.is_current_month %}is-other-month{% endif %} {% if day.special_date %}is-special-day{% endif %}">
             <div class="day-head">
               <strong>{{ day.date.day }}</strong>
               <span class="badge">{{ day.posts|length }} posts</span>
             </div>
 
+            {% if day.special_date %}
+              <div class="special-tag">
+                {{ day.special_date.nombre }}
+                <span class="priority-tag">{{ day.special_date.prioridad }}</span>
+              </div>
+            {% endif %}
+
             <div class="post-list">
               {% for post in day.posts %}
                 <a class="post-item" href="{{ url_for('preview_post', post_id=post.id) }}">
-                  <small>{{ post.canal }} · {{ post.tipo }}</small>
+                  <small>
+                    {{ post.canal }} · {{ post.tipo }}
+                    {% if post.fecha_especial_nombre %}
+                      · {{ post.fecha_especial_nombre }}
+                    {% endif %}
+                  </small>
                   <strong>{{ post.titulo }}</strong>
-                  <span>{{ post.estado }}</span>
+                  <span>
+                    {{ post.estado }}
+                    {% if post.prioridad %}
+                      · prioridad {{ post.prioridad }}
+                    {% endif %}
+                  </span>
                 </a>
               {% else %}
                 <small style="color: var(--muted);">Sin contenido planificado.</small>

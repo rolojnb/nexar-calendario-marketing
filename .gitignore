@@ -1,0 +1,59 @@
+Crear y optimizar el archivo .gitignore para el proyecto nexar-calendario-marketing.
+
+Objetivo:
+Ignorar correctamente archivos temporales, entornos virtuales, bases locales y generación automática de imágenes.
+
+Incluir:
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtualenv
+.venv/
+venv/
+env/
+
+# Flask
+instance/
+.flaskenv
+
+# SQLite
+*.db
+*.sqlite3
+
+# Variables sensibles
+.env
+
+# VS Code
+.vscode/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Generated images
+static/generated/
+
+# Pillow/temp
+*.tmp
+
+# Pytest/cache
+.pytest_cache/
+.coverage
+
+# Build
+dist/
+build/
+
+# IDEs
+.idea/
+
+# Linux
+*~

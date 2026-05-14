@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Calendario | {{ brand_name }}{% endblock %}
+
+{% block content %}
+  <section class="toolbar" style="margin-bottom: 1.2rem;">
+    <form method="get" action="{{ url_for('calendar_view') }}" style="display:flex; gap: 0.85rem; align-items:end; flex-wrap:wrap;">
+      <div class="field">
+        <label for="month">Mes</label>
+        <input id="month" type="month" name="mes" value="{{ selected_month }}">
+      </div>
+      <button class="button-secondary" type="submit">Ver calendario</button>
+    </form>
+
+    <form method="post" action="{{ url_for('generate_calendar') }}" style="display:flex; gap:0.85rem; align-items:end; flex-wrap:wrap;">
+      <input type="hidden" name="mes" value="{{ selected_month }}">
+      <span class="status">{{ external_status }}</span>
+      <button class="button-primary" type="submit">Generar contenido del mes</button>
+    </form>
+  </section>
+
+  <section class="toolbar" style="margin-bottom: 1.2rem;">
+    <form method="post" action="{{ url_for('generate_month_images_route') }}" style="display:flex; gap:0.85rem; align-items:end; flex-wrap:wrap;">
+      <input type="hidden" name="mes" value="{{ selected_month }}">
+      <input type="hidden" name="regenerar" value="false">
+      <button class="button-primary" type="submit">Generar imágenes del mes</button>
+    </form>
+
+    <form method="post" action="{{ url_for('generate_month_images_route') }}" style="display:flex; gap:0.85rem; align-items:end; flex-wrap:wrap;">
+      <input type="hidden" name="mes" value="{{ selected_month }}">
+      <input type="hidden" name="regenerar" value="true">
+      <button class="button-secondary" type="submit">Regenerar imágenes del mes</button>
+    </form>
+  </section>
+
+  <section>
+    <div class="grid" style="margin-bottom: 0.75rem;">
+      <div class="weekday">Lunes</div>
+      <div class="weekday">Martes</div>
+      <div class="weekday">Miércoles</div>
+      <div class="weekday">Jueves</div>
+      <div class="weekday">Viernes</div>
+      <div class="weekday">Sábado</div>
+      <div class="weekday">Domingo</div>
+    </div>
+
+    {% for week in calendar_weeks %}
+      <div class="grid" style="margin-bottom: 1rem;">
+        {% for day in week %}
+          <article class="card day {% if not day.is_current_month %}is-other-month{% endif %}">
+            <div class="day-head">
+              <strong>{{ day.date.day }}</strong>
+              <span class="badge">{{ day.posts|length }} posts</span>
+            </div>
+
+            <div class="post-list">
+              {% for post in day.posts %}
+                <a class="post-item" href="{{ url_for('preview_post', post_id=post.id) }}">
+                  <small>{{ post.canal }} · {{ post.tipo }}</small>
+                  <strong>{{ post.titulo }}</strong>
+                  <span>{{ post.estado }}</span>
+                </a>
+              {% else %}
+                <small style="color: var(--muted);">Sin contenido planificado.</small>
+              {% endfor %}
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% endfor %}
+  </section>
+{% endblock %}

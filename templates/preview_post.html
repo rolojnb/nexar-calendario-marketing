@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Preview | {{ post.titulo }}{% endblock %}
+
+{% block content %}
+  <section class="preview-layout">
+    <article class="card">
+      <h2 style="margin-top:0;">{{ post.titulo }}</h2>
+      <p class="meta">
+        Fecha: {{ post.fecha }}<br>
+        Canal: {{ post.canal }}<br>
+        Tipo: {{ post.tipo }}<br>
+        Estado: {{ post.estado }}
+      </p>
+      <p style="line-height:1.75;">{{ post.texto }}</p>
+      <p><strong>Hashtags:</strong> {{ post.hashtags }}</p>
+      <p class="meta">La base externa de Nexar Comercio se usa solo para lectura. Esta pantalla solo regenera archivos en `static/generated/` y actualiza la base local `data/calendario.db`.</p>
+      <div class="preview-actions">
+        <form method="post" action="{{ url_for('generate_post_image_route', post_id=post.id) }}">
+          <button class="button button-primary" type="submit">Regenerar imagen</button>
+        </form>
+        <a class="button button-secondary" href="{{ url_for('calendar_view', mes=selected_month) }}">Volver al calendario</a>
+      </div>
+    </article>
+
+    <article class="card">
+      <h3 style="margin-top:0;">Imagen generada</h3>
+      {% if post.imagen_path %}
+        <div class="preview-image-frame">
+          <img
+            class="image-preview"
+            src="{{ url_for('static', filename=post.imagen_path) }}"
+            alt="Preview de {{ post.titulo }}"
+          >
+        </div>
+        <p style="margin: 1rem 0 0.4rem;"><strong>Ruta del archivo</strong></p>
+        <div class="path-box">static/{{ post.imagen_path }}</div>
+      {% else %}
+        <p class="meta">Esta publicación todavía no tiene imagen generada.</p>
+      {% endif %}
+    </article>
+  </section>
+{% endblock %}

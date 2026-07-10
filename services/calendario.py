@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import calendar
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 from database import get_connection
@@ -144,13 +144,14 @@ def generate_month_content(
     generated_dir: str,
     brand_settings: dict,
     external_db_path: str,
-    data_source: str = "nexar_comercio",
+    data_source: str = "manual",
     csv_path: str = "",
 ) -> int:
     start_date, end_date = month_bounds(month_str)
     business_context = load_business_context(
         source=data_source,
         nexar_comercio_db_path=external_db_path,
+        manual_db_path=db_path,
         csv_path=csv_path,
     )
     external_context = business_context.to_legacy_dict()
@@ -161,7 +162,7 @@ def generate_month_content(
         external_context=external_context,
     )
 
-    created_at = datetime.utcnow().isoformat()
+    created_at = datetime.now(timezone.utc).isoformat()
     with get_connection(db_path) as connection:
         connection.execute(
             """

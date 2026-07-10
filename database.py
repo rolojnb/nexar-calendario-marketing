@@ -73,4 +73,55 @@ def init_db(db_path: str) -> None:
             connection.execute(
                 "ALTER TABLE marketing_posts ADD COLUMN origen_contenido TEXT DEFAULT 'generico'"
             )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS app_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS business_profile (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                nombre_comercial TEXT NOT NULL DEFAULT '',
+                rubro TEXT NOT NULL DEFAULT '',
+                descripcion TEXT NOT NULL DEFAULT '',
+                publico_objetivo TEXT NOT NULL DEFAULT '',
+                ciudad_zona TEXT NOT NULL DEFAULT '',
+                propuesta_valor TEXT NOT NULL DEFAULT '',
+                productos_servicios_principales TEXT NOT NULL DEFAULT '',
+                objetivo_comercial TEXT NOT NULL DEFAULT '',
+                tono_comunicacion TEXT NOT NULL DEFAULT 'cercano y profesional',
+                instagram TEXT NOT NULL DEFAULT '',
+                whatsapp TEXT NOT NULL DEFAULT '',
+                sitio_web TEXT NOT NULL DEFAULT '',
+                colores_marca TEXT NOT NULL DEFAULT '',
+                logo_path TEXT NOT NULL DEFAULT '',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS catalog_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre TEXT NOT NULL,
+                descripcion TEXT NOT NULL DEFAULT '',
+                categoria TEXT NOT NULL DEFAULT '',
+                precio REAL,
+                stock REAL,
+                item_type TEXT NOT NULL DEFAULT 'producto',
+                featured INTEGER NOT NULL DEFAULT 0,
+                active INTEGER NOT NULL DEFAULT 1,
+                image_path TEXT NOT NULL DEFAULT '',
+                deleted_at TEXT DEFAULT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
         connection.commit()

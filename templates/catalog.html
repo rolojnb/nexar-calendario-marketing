@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Productos y servicios | {{ brand_name }}{% endblock %}
+
+{% block content %}
+  <section class="catalog-grid">
+    <article class="card">
+      <h2 style="margin-top:0;">{% if editing_item %}Editar producto o servicio{% else %}Nuevo producto o servicio{% endif %}</h2>
+      <p class="meta">El catálogo manual sirve tanto para productos físicos como para servicios. Precio, stock e imagen son opcionales.</p>
+      {% set item = editing_item or empty_item %}
+      <form method="post" enctype="multipart/form-data" action="{% if editing_item %}{{ url_for('catalog_update', item_id=editing_item.id) }}{% else %}{{ url_for('catalog_create') }}{% endif %}">
+        <div class="form-grid">
+          <div class="field">
+            <label for="nombre">Nombre</label>
+            <input id="nombre" type="text" name="nombre" value="{{ item.nombre }}" required>
+          </div>
+          <div class="field">
+            <label for="item_type">Tipo</label>
+            <select id="item_type" name="item_type">
+              <option value="producto" {% if item.item_type == 'producto' %}selected{% endif %}>Producto</option>
+              <option value="servicio" {% if item.item_type == 'servicio' %}selected{% endif %}>Servicio</option>
+            </select>
+          </div>
+          <div class="field span-2">
+            <label for="descripcion">Descripción</label>
+            <textarea id="descripcion" name="descripcion" required>{{ item.descripcion }}</textarea>
+          </div>
+          <div class="field">
+            <label for="categoria">Categoría</label>
+            <input id="categoria" type="text" name="categoria" value="{{ item.categoria }}">
+          </div>
+          <div class="field">
+            <label for="precio">Precio opcional</label>
+            <input id="precio" type="number" step="0.01" min="0" name="precio" value="{{ '' if item.precio is none else item.precio }}">
+          </div>
+          <div class="field">
+            <label for="stock">Stock opcional</label>
+            <input id="stock" type="number" step="0.01" min="0" name="stock" value="{{ '' if item.stock is none else item.stock }}">
+          </div>
+          <div class="field">
+            <label for="image">Imagen opcional</label>
+            <input id="image" type="file" name="image" accept=".png,.jpg,.jpeg,.webp">
+          </div>
+          <div class="field span-2">
+            <label class="checkbox-row"><input type="checkbox" name="featured" value="1" {% if item.featured %}checked{% endif %}>Destacado</label>
+            <label class="checkbox-row"><input type="checkbox" name="active" value="1" {% if item.active %}checked{% endif %}>Activo</label>
+            {% if editing_item and item.image_path %}
+              <label class="checkbox-row"><input type="checkbox" name="remove_image" value="1">Quitar imagen actual</label>
+            {% endif %}
+          </div>
+        </div>
+        {% if editing_item and item.image_path %}
+          <div class="inline-actions">
+            <img class="thumb" src="{{ url_for('catalog_image', item_id=editing_item.id) }}" alt="Imagen de {{ item.nombre }}">
+          </div>
+        {% endif %}
+        <div class="form-actions">
+          <button class="button-primary" type="submit">{% if editing_item %}Guardar cambios{% else %}Agregar al catálogo{% endif %}</button>
+          {% if editing_item %}
+            <a class="button button-secondary" href="{{ url_for('catalog_view') }}">Cancelar edición</a>
+          {% endif %}
+        </div>
+      </form>
+    </article>
+
+    <article class="card">
+      <h2 style="margin-top:0;">Catálogo actual</h2>
+      {% if items %}
+        <div class="stack">
+          {% for item in items %}
+            <div class="catalog-item">
+              <div class="inline-actions" style="justify-content:space-between; margin-top:0;">
+                <div>
+                  <h3>{{ item.nombre }}</h3>
+                  <p class="meta">{{ item.item_type }}{% if item.categoria %} · {{ item.categoria }}{% endif %}</p>
+                </div>
+                <div class="chip-row" style="margin:0;">
+                  {% if item.featured %}<span class="chip chip-real">Destacado</span>{% endif %}
+                  <span class="chip {% if item.active %}chip-real{% else %}chip-warn{% endif %}">{{ 'Activo' if item.active else 'Inactivo' }}</span>
+                </div>
+              </div>
+              <p class="meta" style="margin:0.75rem 0;">{{ item.descripcion }}</p>
+              <div class="chip-row">
+                {% if item.precio is not none %}<span class="chip">Precio: {{ item.precio }}</span>{% endif %}
+                {% if item.stock is not none %}<span class="chip">Stock: {{ item.stock }}</span>{% endif %}
+                {% if item.image_path %}<span class="chip">Con imagen</span>{% endif %}
+              </div>
+              <div class="inline-actions">
+                <a class="button button-secondary" href="{{ url_for('catalog_view', edit=item.id) }}">Editar</a>
+                <form method="post" action="{{ url_for('catalog_toggle_active', item_id=item.id) }}">
+                  <button class="button-secondary" type="submit">{{ 'Desactivar' if item.active else 'Activar' }}</button>
+                </form>
+                <form method="post" action="{{ url_for('catalog_delete', item_id=item.id) }}">
+                  <button class="button-danger" type="submit">Eliminar</button>
+                </form>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <h3 style="margin-top:0;">Todavía no cargaste productos o servicios</h3>
+          <p class="meta">Podés empezar con uno destacado y luego completar el resto del catálogo. El calendario seguirá funcionando aunque no tengan precio, stock o imagen.</p>
+        </div>
+      {% endif %}
+    </article>
+  </section>
+{% endblock %}

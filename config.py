@@ -19,6 +19,8 @@ class Config:
 
     NEXAR_COMERCIO_PATH = os.getenv("NEXAR_COMERCIO_PATH", "")
     NEXAR_COMERCIO_DB = os.getenv("NEXAR_COMERCIO_DB", "")
+    DATA_SOURCE = os.getenv("DATA_SOURCE", "nexar_comercio")
+    CSV_DATA_SOURCE_PATH = os.getenv("CSV_DATA_SOURCE_PATH", "")
 
     BRAND_NAME = os.getenv("BRAND_NAME", "Nexar Marketing")
     BRAND_PRIMARY = os.getenv("BRAND_PRIMARY", "#1D4ED8")

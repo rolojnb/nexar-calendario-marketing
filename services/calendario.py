@@ -5,10 +5,10 @@ from datetime import date, datetime
 from pathlib import Path
 
 from database import get_connection
-from services.data_sources import load_business_context
 from services.fechas_especiales import obtener_fecha_especial
 from services.generador_imagenes import generate_post_image
 from services.generador_posts import generate_month_posts
+from services.nexar_importer import load_external_context
 
 
 def month_bounds(month_str: str) -> tuple[date, date]:
@@ -146,11 +146,7 @@ def generate_month_content(
     external_db_path: str,
 ) -> int:
     start_date, end_date = month_bounds(month_str)
-    business_context = load_business_context(
-        source="nexar_comercio",
-        nexar_comercio_db_path=external_db_path,
-    )
-    external_context = business_context.to_legacy_dict()
+    external_context = load_external_context(external_db_path)
     posts = generate_month_posts(
         year=start_date.year,
         month=start_date.month,

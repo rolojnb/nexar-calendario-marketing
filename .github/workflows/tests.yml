@@ -1,6 +1,6 @@
 name: Tests
 
-on:
+"on":
   pull_request:
     branches:
       - main
@@ -34,4 +34,5 @@ jobs:
         run: python -m compileall app.py config.py database.py services tests
 
       - name: Check Flask app factory
-        run: python -c "from app import create_app; app = create_app(); print(app.name)"
+        run: |
+          python -c "from app import create_app; app = create_app(); print(app.name)"

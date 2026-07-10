@@ -19,7 +19,7 @@ class Config:
 
     NEXAR_COMERCIO_PATH = os.getenv("NEXAR_COMERCIO_PATH", "")
     NEXAR_COMERCIO_DB = os.getenv("NEXAR_COMERCIO_DB", "")
-    DATA_SOURCE = os.getenv("DATA_SOURCE", "nexar_comercio")
+    DATA_SOURCE = os.getenv("DATA_SOURCE", "manual")
     CSV_DATA_SOURCE_PATH = os.getenv("CSV_DATA_SOURCE_PATH", "")
 
     BRAND_NAME = os.getenv("BRAND_NAME", "Nexar Marketing")
@@ -33,10 +33,4 @@ class Config:
     BRAND_BACKGROUNDS_DIR = os.getenv(
         "BRAND_BACKGROUNDS_DIR",
         str(BASE_DIR / "static" / "branding" / "fondos"),
-    )
-
-    EXTERNAL_SOURCE_STATUS = (
-        "Base externa configurada"
-        if NEXAR_COMERCIO_DB and Path(NEXAR_COMERCIO_DB).exists()
-        else "Base externa no encontrada o no configurada"
     )

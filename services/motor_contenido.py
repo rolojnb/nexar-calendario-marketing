@@ -14,6 +14,15 @@ COMMERCIAL_PRIORITIES = (
     "promocion_generica",
 )
 
+MANUAL_PRIORITIES = (
+    "catalogo_destacado",
+    "catalogo_general",
+    "categoria_manual",
+    "objetivo_manual",
+    "tip_generico",
+    "promocion_generica",
+)
+
 
 def _format_money(value: object) -> str:
     if value in (None, ""):
@@ -44,6 +53,15 @@ def _pick(items: list[dict], slot_index: int) -> dict | None:
     if not items:
         return None
     return items[slot_index % len(items)]
+
+
+def _business_goal(profile: dict) -> str:
+    return str(profile.get("objetivo_comercial") or "sumar consultas y ventas").strip()
+
+
+def _tone_line(profile: dict) -> str:
+    tone = str(profile.get("tono_comunicacion") or "cercano y profesional").strip()
+    return tone if tone else "cercano y profesional"
 
 
 def _build_special_copy(special_date: dict, brand_name: str) -> dict:
@@ -155,6 +173,81 @@ def _build_category_copy(category: dict, brand_name: str) -> dict:
     }
 
 
+def _build_manual_item_copy(product: dict, brand_name: str, profile: dict) -> dict:
+    product_name = product.get("producto_nombre") or "Servicio destacado"
+    item_type = product.get("tipo") or "producto"
+    goal = _business_goal(profile)
+    tone = _tone_line(profile)
+    audience = str(profile.get("publico_objetivo") or "tu audiencia ideal").strip()
+    category_name = product.get("categoria_nombre") or ""
+    price_label = _format_money(product.get("precio_valor"))
+    price_line = f" Podés mencionar un valor de referencia de {price_label}." if price_label else ""
+    stock = product.get("stock_valor")
+    stock_line = f" Hay {stock} disponibles." if stock not in (None, "") and item_type == "producto" else ""
+    category_line = f" dentro de {category_name}" if category_name else ""
+    descriptor = "este producto" if item_type == "producto" else "este servicio"
+    proposal = str(profile.get("propuesta_valor") or "").strip()
+    proposal_line = f" Propuesta de valor: {proposal}." if proposal else ""
+
+    return {
+        "tipo": "producto_destacado" if item_type == "producto" else "novedad",
+        "titulo": f"{product_name}: propuesta para {audience}",
+        "texto": (
+            f"Mostrá {descriptor} {product_name}{category_line} con un tono {tone} y enfocá el mensaje en {goal}."
+            f"{stock_line}{price_line}{proposal_line}"
+        ).strip(),
+        "hashtags": _clean_hashtags("#catalogo #negociolocal #marketing", "#manual"),
+        "cta": "Consultanos y te asesoramos",
+        "producto_asociado": product,
+        "categoria_asociada": {"categoria_nombre": category_name} if category_name else None,
+        "imagen_producto_path": product.get("imagen_producto_path", ""),
+        "origen_contenido": "catalogo_manual",
+        "fecha_especial_nombre": "",
+        "prioridad": "",
+    }
+
+
+def _build_manual_category_copy(category: dict, brand_name: str, profile: dict) -> dict:
+    category_name = category.get("categoria_nombre") or "Servicios destacados"
+    goal = _business_goal(profile)
+    return {
+        "tipo": "novedad",
+        "titulo": f"Semana de {category_name}",
+        "texto": (
+            f"Agrupá el contenido de {category_name} para que {brand_name} comunique mejor su oferta y avance sobre el objetivo de {goal}."
+        ),
+        "hashtags": _clean_hashtags("#categoria #catalogo #contenidodigital", "#manual"),
+        "cta": "Pedinos opciones según lo que necesitás",
+        "producto_asociado": None,
+        "categoria_asociada": category,
+        "imagen_producto_path": "",
+        "origen_contenido": "categoria_manual",
+        "fecha_especial_nombre": "",
+        "prioridad": "",
+    }
+
+
+def _build_manual_goal_copy(brand_name: str, profile: dict) -> dict:
+    goal = _business_goal(profile)
+    audience = str(profile.get("publico_objetivo") or "tu público objetivo").strip()
+    proposal = str(profile.get("propuesta_valor") or "tu diferencial").strip()
+    return {
+        "tipo": "promocion",
+        "titulo": f"Objetivo del mes: {goal}",
+        "texto": (
+            f"Prepará una pieza clara para {audience}, resaltando {proposal} y dejando una invitación concreta a escribirle a {brand_name}."
+        ),
+        "hashtags": _clean_hashtags("#objetivocomercial #marca #contenido", "#manual"),
+        "cta": "Escribinos y te contamos más",
+        "producto_asociado": None,
+        "categoria_asociada": None,
+        "imagen_producto_path": "",
+        "origen_contenido": "objetivo_manual",
+        "fecha_especial_nombre": "",
+        "prioridad": "",
+    }
+
+
 def _build_tip_copy(brand_name: str) -> dict:
     return {
         "tipo": "tip",
@@ -193,6 +286,40 @@ def _build_promo_copy(brand_name: str) -> dict:
     }
 
 
+def _resolve_manual_publication(brand_name: str, external_context: dict, slot_index: int) -> dict:
+    profile = external_context.get("business_profile") or {}
+    featured = external_context.get("productos_destacados") or []
+    products = external_context.get("productos") or []
+    categories = external_context.get("categorias") or []
+
+    rotated = [
+        MANUAL_PRIORITIES[(slot_index + offset) % len(MANUAL_PRIORITIES)]
+        for offset in range(len(MANUAL_PRIORITIES))
+    ]
+
+    for priority in rotated:
+        if priority == "catalogo_destacado":
+            product = _pick(featured, slot_index)
+            if product:
+                return _build_manual_item_copy(product, brand_name, profile)
+        if priority == "catalogo_general":
+            product = _pick(products, slot_index)
+            if product:
+                return _build_manual_item_copy(product, brand_name, profile)
+        if priority == "categoria_manual":
+            category = _pick(categories, slot_index)
+            if category:
+                return _build_manual_category_copy(category, brand_name, profile)
+        if priority == "objetivo_manual":
+            return _build_manual_goal_copy(brand_name, profile)
+        if priority == "tip_generico":
+            return _build_tip_copy(brand_name)
+        if priority == "promocion_generica":
+            return _build_promo_copy(brand_name)
+
+    return _build_promo_copy(brand_name)
+
+
 def resolver_publicacion(
     current_date: date,
     brand_name: str,
@@ -202,6 +329,11 @@ def resolver_publicacion(
     special_date = obtener_fecha_especial(current_date)
     if special_date:
         return _build_special_copy(special_date, brand_name)
+
+    if external_context.get("source") == "manual" and (
+        external_context.get("productos") or external_context.get("business_profile")
+    ):
+        return _resolve_manual_publication(brand_name, external_context, slot_index)
 
     rotated = [
         COMMERCIAL_PRIORITIES[(slot_index + offset) % len(COMMERCIAL_PRIORITIES)]

@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Mi negocio | {{ brand_name }}{% endblock %}
+
+{% block content %}
+  <section class="split-layout">
+    <article class="card">
+      <h2 style="margin-top:0;">Mi negocio</h2>
+      <p class="meta">Guardá la información comercial en la SQLite propia. No se usan variables de entorno para persistir estos datos.</p>
+      <form method="post" enctype="multipart/form-data">
+        <div class="form-grid">
+          <div class="field span-2">
+            <label for="data_source">Fuente de datos del calendario</label>
+            <select id="data_source" name="data_source">
+              <option value="manual" {% if selected_source == 'manual' %}selected{% endif %}>Manual</option>
+              <option value="nexar_comercio" {% if selected_source == 'nexar_comercio' %}selected{% endif %}>Nexar Comercio (solo lectura)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="nombre_comercial">Nombre comercial</label>
+            <input id="nombre_comercial" type="text" name="nombre_comercial" value="{{ profile.nombre_comercial }}" required>
+          </div>
+          <div class="field">
+            <label for="rubro">Rubro</label>
+            <input id="rubro" type="text" name="rubro" value="{{ profile.rubro }}" required>
+          </div>
+          <div class="field span-2">
+            <label for="descripcion">Descripción</label>
+            <textarea id="descripcion" name="descripcion" required>{{ profile.descripcion }}</textarea>
+          </div>
+          <div class="field">
+            <label for="publico_objetivo">Público objetivo</label>
+            <textarea id="publico_objetivo" name="publico_objetivo" required>{{ profile.publico_objetivo }}</textarea>
+          </div>
+          <div class="field">
+            <label for="objetivo_comercial">Objetivo comercial</label>
+            <textarea id="objetivo_comercial" name="objetivo_comercial" required>{{ profile.objetivo_comercial }}</textarea>
+          </div>
+          <div class="field">
+            <label for="ciudad_zona">Ciudad o zona</label>
+            <input id="ciudad_zona" type="text" name="ciudad_zona" value="{{ profile.ciudad_zona }}">
+          </div>
+          <div class="field">
+            <label for="tono_comunicacion">Tono de comunicación</label>
+            <input id="tono_comunicacion" type="text" name="tono_comunicacion" value="{{ profile.tono_comunicacion }}" placeholder="cercano y profesional">
+          </div>
+          <div class="field span-2">
+            <label for="propuesta_valor">Propuesta de valor</label>
+            <textarea id="propuesta_valor" name="propuesta_valor">{{ profile.propuesta_valor }}</textarea>
+          </div>
+          <div class="field span-2">
+            <label for="productos_servicios_principales">Productos o servicios principales</label>
+            <textarea id="productos_servicios_principales" name="productos_servicios_principales">{{ profile.productos_servicios_principales }}</textarea>
+          </div>
+          <div class="field">
+            <label for="instagram">Instagram</label>
+            <input id="instagram" type="text" name="instagram" value="{{ profile.instagram }}" placeholder="@tunegocio">
+          </div>
+          <div class="field">
+            <label for="whatsapp">WhatsApp</label>
+            <input id="whatsapp" type="text" name="whatsapp" value="{{ profile.whatsapp }}" placeholder="+54 264 ...">
+          </div>
+          <div class="field span-2">
+            <label for="sitio_web">Sitio web</label>
+            <input id="sitio_web" type="url" name="sitio_web" value="{{ profile.sitio_web }}" placeholder="https://...">
+          </div>
+          <div class="field span-2">
+            <label for="colores_marca">Colores de marca</label>
+            <input id="colores_marca" type="text" name="colores_marca" value="{{ profile.colores_marca }}" placeholder="#1D4ED8, #0F172A, #F59E0B">
+          </div>
+          <div class="field span-2">
+            <label for="logo">Logo opcional</label>
+            <input id="logo" type="file" name="logo" accept=".png,.jpg,.jpeg,.webp">
+            {% if profile.logo_path %}
+              <div class="inline-actions">
+                <img class="thumb" src="{{ url_for('business_logo') }}" alt="Logo de {{ profile.nombre_comercial or brand_name }}">
+              </div>
+              <label class="checkbox-row"><input type="checkbox" name="remove_logo" value="1">Quitar logo actual</label>
+            {% endif %}
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="button-primary" type="submit">Guardar negocio</button>
+        </div>
+      </form>
+    </article>
+
+    <article class="card">
+      <h2 style="margin-top:0;">Estado actual</h2>
+      <div class="stack">
+        <div class="detail-item">
+          <strong>Fuente seleccionada</strong>
+          <span>{{ 'Manual' if selected_source == 'manual' else 'Nexar Comercio (solo lectura)' }}</span>
+        </div>
+        <div class="detail-item">
+          <strong>Base externa</strong>
+          <span>{% if external_db_configured %}Disponible en modo solo lectura{% else %}No configurada o no encontrada{% endif %}</span>
+        </div>
+        <div class="detail-item">
+          <strong>Consejo</strong>
+          <span>Completá al menos nombre, público objetivo y objetivo comercial para que el calendario use el perfil real del negocio.</span>
+        </div>
+      </div>
+      {% if not profile.nombre_comercial %}
+        <div class="empty-state">
+          <h3 style="margin-top:0;">Todavía no hay un negocio cargado</h3>
+          <p class="meta">Podés empezar por el perfil y luego sumar productos o servicios desde el catálogo manual.</p>
+        </div>
+      {% endif %}
+    </article>
+  </section>
+{% endblock %}

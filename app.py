@@ -61,6 +61,8 @@ def create_app() -> Flask:
                 "backgrounds_dir": app.config["BRAND_BACKGROUNDS_DIR"],
             },
             external_db_path=app.config["NEXAR_COMERCIO_DB"],
+            data_source=app.config["DATA_SOURCE"],
+            csv_path=app.config["CSV_DATA_SOURCE_PATH"],
         )
         flash(f"Se generaron {generated} publicaciones para {month_str}.", "success")
         return redirect(url_for("calendar_view", mes=month_str))

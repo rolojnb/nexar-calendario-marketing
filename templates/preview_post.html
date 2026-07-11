@@ -9,44 +9,32 @@
       <p class="meta">
         Fecha: {{ post.fecha }}<br>
         Canal: {{ post.canal }}<br>
-        Tipo: {{ post.tipo }}<br>
-        Estado: {{ post.estado }}
+        Estado: {{ post.generation_status or post.estado }}
       </p>
-      <p style="line-height:1.75;">{{ post.texto }}</p>
-      <p><strong>Hashtags:</strong> {{ post.hashtags }}</p>
       <div class="detail-list">
         <div class="detail-item">
-          <strong>Origen del contenido</strong>
-          <span>{{ post.origen_contenido or 'generico' }}</span>
+          <strong>Caption</strong>
+          <p style="line-height:1.75; margin:0;">{{ post.caption or post.texto }}</p>
         </div>
         <div class="detail-item">
           <strong>CTA</strong>
-          <span>{{ post.cta or 'Sin CTA específico' }}</span>
+          <span>{{ post.cta }}</span>
         </div>
         <div class="detail-item">
-          <strong>Producto asociado</strong>
-          <span>{{ post.producto_nombre or 'No asociado' }}{% if post.producto_id %} {% endif %}{% if post.producto_id %}(ID: {{ post.producto_id }}){% endif %}</span>
-        </div>
-        <div class="detail-item">
-          <strong>Categoría asociada</strong>
-          <span>{{ post.categoria_nombre or 'No asociada' }}</span>
-        </div>
-        <div class="detail-item">
-          <strong>Imagen de producto</strong>
-          {% if post.imagen_producto_path %}
-            <img
-              class="product-image-inline"
-              src="{{ url_for('preview_product_image', post_id=post.id) }}"
-              alt="Imagen de producto asociada a {{ post.titulo }}"
-            >
-            <div class="path-box" style="margin-top:0.75rem;">{{ post.imagen_producto_path }}</div>
-          {% else %}
-            <span>No disponible</span>
-          {% endif %}
+          <strong>Hashtags</strong>
+          <span>{{ post.hashtags }}</span>
         </div>
       </div>
-      <p class="meta">La base externa de Nexar Comercio se usa solo para lectura. Esta pantalla solo regenera archivos en `static/generated/` y actualiza la base local `data/calendario.db`.</p>
+      <textarea id="copyText" class="copy-box" readonly>{{ post.caption or post.texto }}
+
+{{ post.cta }}
+
+{{ post.hashtags }}</textarea>
       <div class="preview-actions">
+        <button class="button button-secondary" type="button" data-copy-target="copyText">Copiar texto completo</button>
+        <form method="post" action="{{ url_for('regenerate_post_content_route', post_id=post.id) }}">
+          <button class="button button-primary" type="submit">Regenerar contenido</button>
+        </form>
         <form method="post" action="{{ url_for('generate_post_image_route', post_id=post.id) }}">
           <button class="button button-primary" type="submit">Regenerar imagen</button>
         </form>
@@ -64,11 +52,22 @@
             alt="Preview de {{ post.titulo }}"
           >
         </div>
-        <p style="margin: 1rem 0 0.4rem;"><strong>Ruta del archivo</strong></p>
-        <div class="path-box">static/{{ post.imagen_path }}</div>
+        <div class="preview-actions">
+          <a class="button button-secondary" href="{{ url_for('download_post_image', post_id=post.id) }}">Descargar imagen</a>
+        </div>
       {% else %}
         <p class="meta">Esta publicación todavía no tiene imagen generada.</p>
       {% endif %}
     </article>
   </section>
+  <script>
+    document.querySelectorAll("[data-copy-target]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const target = document.getElementById(button.dataset.copyTarget);
+        if (!target) return;
+        target.select();
+        await navigator.clipboard.writeText(target.value);
+      });
+    });
+  </script>
 {% endblock %}

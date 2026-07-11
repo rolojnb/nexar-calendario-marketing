@@ -10,6 +10,18 @@ def get_connection(db_path: str) -> sqlite3.Connection:
     return connection
 
 
+def ensure_runtime_directories(paths: list[str] | tuple[str, ...]) -> None:
+    for raw_path in paths:
+        if raw_path:
+            Path(raw_path).mkdir(parents=True, exist_ok=True)
+
+
+def _add_column(connection: sqlite3.Connection, columns: set[str], column: str, definition: str) -> None:
+    if column not in columns:
+        connection.execute(f"ALTER TABLE marketing_posts ADD COLUMN {column} {definition}")
+        columns.add(column)
+
+
 def init_db(db_path: str) -> None:
     Path(db_path).parent.mkdir(parents=True, exist_ok=True)
     with get_connection(db_path) as connection:
@@ -23,7 +35,15 @@ def init_db(db_path: str) -> None:
                 titulo TEXT NOT NULL,
                 texto TEXT NOT NULL,
                 hashtags TEXT DEFAULT '',
+                caption TEXT DEFAULT '',
                 cta TEXT DEFAULT '',
+                visual_headline TEXT DEFAULT '',
+                visual_subtitle TEXT DEFAULT '',
+                visual_cta TEXT DEFAULT '',
+                strategy_used TEXT DEFAULT '',
+                content_provider TEXT DEFAULT '',
+                content_model TEXT DEFAULT '',
+                generation_status TEXT DEFAULT 'generated',
                 imagen_path TEXT DEFAULT '',
                 producto_nombre TEXT DEFAULT '',
                 producto_id TEXT DEFAULT '',
@@ -33,7 +53,8 @@ def init_db(db_path: str) -> None:
                 fecha_especial_nombre TEXT DEFAULT '',
                 prioridad TEXT DEFAULT '',
                 estado TEXT DEFAULT 'borrador',
-                created_at TEXT NOT NULL
+                created_at TEXT NOT NULL,
+                updated_at TEXT DEFAULT ''
             )
             """
         )
@@ -41,38 +62,30 @@ def init_db(db_path: str) -> None:
             row["name"]
             for row in connection.execute("PRAGMA table_info(marketing_posts)").fetchall()
         }
-        if "fecha_especial_nombre" not in columns:
-            connection.execute(
-                "ALTER TABLE marketing_posts ADD COLUMN fecha_especial_nombre TEXT DEFAULT ''"
-            )
-        if "prioridad" not in columns:
-            connection.execute(
-                "ALTER TABLE marketing_posts ADD COLUMN prioridad TEXT DEFAULT ''"
-            )
-        if "cta" not in columns:
-            connection.execute(
-                "ALTER TABLE marketing_posts ADD COLUMN cta TEXT DEFAULT ''"
-            )
-        if "producto_nombre" not in columns:
-            connection.execute(
-                "ALTER TABLE marketing_posts ADD COLUMN producto_nombre TEXT DEFAULT ''"
-            )
-        if "producto_id" not in columns:
-            connection.execute(
-                "ALTER TABLE marketing_posts ADD COLUMN producto_id TEXT DEFAULT ''"
-            )
-        if "categoria_nombre" not in columns:
-            connection.execute(
-                "ALTER TABLE marketing_posts ADD COLUMN categoria_nombre TEXT DEFAULT ''"
-            )
-        if "imagen_producto_path" not in columns:
-            connection.execute(
-                "ALTER TABLE marketing_posts ADD COLUMN imagen_producto_path TEXT DEFAULT ''"
-            )
-        if "origen_contenido" not in columns:
-            connection.execute(
-                "ALTER TABLE marketing_posts ADD COLUMN origen_contenido TEXT DEFAULT 'generico'"
-            )
+        _add_column(connection, columns, "fecha_especial_nombre", "TEXT DEFAULT ''")
+        _add_column(connection, columns, "prioridad", "TEXT DEFAULT ''")
+        _add_column(connection, columns, "caption", "TEXT DEFAULT ''")
+        _add_column(connection, columns, "cta", "TEXT DEFAULT ''")
+        _add_column(connection, columns, "visual_headline", "TEXT DEFAULT ''")
+        _add_column(connection, columns, "visual_subtitle", "TEXT DEFAULT ''")
+        _add_column(connection, columns, "visual_cta", "TEXT DEFAULT ''")
+        _add_column(connection, columns, "strategy_used", "TEXT DEFAULT ''")
+        _add_column(connection, columns, "content_provider", "TEXT DEFAULT ''")
+        _add_column(connection, columns, "content_model", "TEXT DEFAULT ''")
+        _add_column(connection, columns, "generation_status", "TEXT DEFAULT 'generated'")
+        _add_column(connection, columns, "producto_nombre", "TEXT DEFAULT ''")
+        _add_column(connection, columns, "producto_id", "TEXT DEFAULT ''")
+        _add_column(connection, columns, "categoria_nombre", "TEXT DEFAULT ''")
+        _add_column(connection, columns, "imagen_producto_path", "TEXT DEFAULT ''")
+        _add_column(connection, columns, "origen_contenido", "TEXT DEFAULT 'generico'")
+        _add_column(connection, columns, "updated_at", "TEXT DEFAULT ''")
+        connection.execute(
+            """
+            UPDATE marketing_posts
+            SET caption = texto
+            WHERE COALESCE(caption, '') = '' AND COALESCE(texto, '') != ''
+            """
+        )
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS app_settings (

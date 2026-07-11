@@ -40,7 +40,9 @@ def _utcnow() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _uploads_root(db_path: str) -> Path:
+def _uploads_root(db_path: str, uploads_dir: str = "") -> Path:
+    if uploads_dir:
+        return Path(uploads_dir).resolve()
     return Path(db_path).resolve().parent / "uploads"
 
 
@@ -444,10 +446,10 @@ def soft_delete_catalog_item(db_path: str, item_id: int) -> None:
         connection.commit()
 
 
-def resolve_managed_path(db_path: str, stored_path: str) -> Path | None:
+def resolve_managed_path(db_path: str, stored_path: str, uploads_dir: str = "") -> Path | None:
     if not stored_path:
         return None
-    uploads_root = _uploads_root(db_path).resolve()
+    uploads_root = _uploads_root(db_path, uploads_dir).resolve()
     candidate = Path(stored_path)
     if not candidate.is_absolute():
         app_root = uploads_root.parent.parent
@@ -468,8 +470,8 @@ def resolve_managed_path(db_path: str, stored_path: str) -> Path | None:
     return None
 
 
-def delete_managed_file(db_path: str, stored_path: str) -> None:
-    candidate = resolve_managed_path(db_path, stored_path)
+def delete_managed_file(db_path: str, stored_path: str, uploads_dir: str = "") -> None:
+    candidate = resolve_managed_path(db_path, stored_path, uploads_dir)
     if candidate:
         candidate.unlink(missing_ok=True)
 
@@ -480,6 +482,7 @@ def store_image_upload(
     *,
     bucket: str,
     prefix: str,
+    uploads_dir: str = "",
 ) -> str:
     if not file_storage or not file_storage.filename:
         raise ValueError("No se recibió ningún archivo.")
@@ -496,14 +499,19 @@ def store_image_upload(
     except Exception as error:  # pragma: no cover - Pillow raises multiple subclasses
         raise ValueError("El archivo seleccionado no es una imagen válida.") from error
 
-    uploads_root = _uploads_root(db_path)
+    uploads_root = _uploads_root(db_path, uploads_dir)
     bucket_dir = uploads_root / bucket
     bucket_dir.mkdir(parents=True, exist_ok=True)
     output_name = f"{prefix}_{uuid4().hex}{extension}"
     output_path = bucket_dir / output_name
     file_storage.save(output_path)
 
-    return str(Path("data") / "uploads" / bucket / output_name)
+    if not uploads_dir:
+        return str(Path("data") / "uploads" / bucket / output_name)
+    try:
+        return str(output_path.resolve().relative_to(Path.cwd().resolve()))
+    except ValueError:
+        return str(output_path.resolve())
 
 
 def build_brand_settings(base_settings: Mapping[str, str], profile: Mapping[str, str]) -> dict[str, str]:

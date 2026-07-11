@@ -5,11 +5,11 @@ Aplicación Flask independiente para generar un calendario mensual de contenido 
 ## Características
 
 - Funciona sin Nexar Comercio ni otra app externa.
-- Guarda perfil, catálogo, publicaciones y configuración en `data/calendario.db`.
+- Guarda perfil, catálogo, publicaciones y configuración en una SQLite local de ejecución.
 - Permite cargar manualmente productos o servicios con precio, stock e imagen opcionales.
-- Mantiene las imágenes manuales dentro de `data/uploads/`.
+- Mantiene las imágenes manuales dentro de uploads locales ignorados por Git.
 - Nexar Comercio se abre estrictamente en modo `read-only` usando SQLite URI `mode=ro`.
-- Genera publicaciones para un mes completo con plantillas simples sin IA.
+- Genera publicaciones finales listas para publicar con un proveedor determinista local, sin red ni API key.
 - Sigue funcionando aunque la base externa no esté configurada o no exista.
 
 ## Estructura
@@ -25,6 +25,8 @@ templates/
 static/
 data/
 ```
+
+`data/` queda en el repositorio solo como estructura mediante `.gitkeep`. Los archivos reales de ejecución no se versionan.
 
 ## Instalación en Linux
 
@@ -60,6 +62,36 @@ Estas variables siguen existiendo como fallback o integración opcional:
 
 El perfil real del negocio, la fuente seleccionada y el catálogo persistente se administran desde la interfaz y se guardan en la SQLite propia.
 
+## Datos locales de ejecución
+
+La app mantiene la convención existente `data/` para no romper instalaciones previas. No migra automáticamente a `instance/` porque ya hay compatibilidad estable con:
+
+- `data/calendario.db`
+- `data/uploads/`
+
+Al iniciar, la aplicación crea automáticamente los directorios configurados:
+
+- `data/`
+- `data/uploads/`
+- `data/exports/`
+- `data/backups/`
+- `data/cache/`
+- `data/logs/`
+- `static/generated/`
+
+Estos archivos y carpetas son datos locales de ejecución y están ignorados por Git: bases `.db`, `.sqlite`, `.sqlite3`, uploads, exports, backups, cachés, logs, temporales, ZIP, TXT e imágenes generadas. Solo deben versionarse código, templates, tests, documentación y archivos de estructura como `.gitkeep`.
+
+Las rutas se centralizan en `config.py` y pueden cambiarse con variables de entorno:
+
+- `DATA_DIR`
+- `DATABASE_PATH`
+- `UPLOADS_DIR`
+- `EXPORTS_DIR`
+- `BACKUPS_DIR`
+- `CACHE_DIR`
+- `LOGS_DIR`
+- `GENERATED_DIR`
+
 ## Flujo manual
 
 1. Abrí `Mi negocio` y completá nombre, rubro, público objetivo y objetivo comercial.
@@ -80,17 +112,31 @@ La base local crea y mantiene estas tablas de forma idempotente:
 
 Las migraciones no borran publicaciones existentes y siguen siendo compatibles con bases ya creadas.
 
+`marketing_posts` conserva `texto` por compatibilidad, pero las publicaciones nuevas guardan allí únicamente copy público final. También se persisten `caption`, `visual_headline`, `visual_subtitle`, `visual_cta`, `strategy_used`, `content_provider`, `content_model`, `generation_status` y `updated_at`.
+
 ## Seguridad de datos externos
 
 - La base externa de Nexar Comercio se abre únicamente desde `services/nexar_importer.py`.
 - La conexión usa SQLite en modo solo lectura con `sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)`.
 - Ese módulo no hace `commit()` ni ejecuta `INSERT`, `UPDATE`, `DELETE`, `ALTER`, `DROP` ni ninguna escritura sobre Nexar Comercio.
-- Toda escritura de la app ocurre únicamente en `data/calendario.db` y `data/uploads/`.
+- Toda escritura propia de la app ocurre únicamente en rutas locales configuradas, por defecto `data/calendario.db`, `data/uploads/` y `static/generated/`.
+
+## Motor de marketing
+
+El flujo de generación usa contratos tipados:
+
+- `MarketingBrief`: brief interno con objetivo, estrategia, audiencia, hechos permitidos y dirección visual. No se guarda ni se muestra.
+- `GeneratedContent`: contenido público con título, caption, CTA, hashtags y textos visuales breves.
+
+`services/marketing_engine.py` arma el brief desde `BusinessDataContext` y `ProductData`, selecciona estrategia mediante reglas explícitas y llama a un proveedor de contenido. Esta fase implementa solo `services/ai/deterministic.py`, un proveedor local determinista preparado para reemplazarse o ampliarse luego con proveedores de IA remotos.
+
+El validador `services/content_validator.py` rechaza instrucciones editoriales internas como "Mostrá", "Prepará", "Podés mencionar", "Usá un tono", "Agrupá el contenido", "Propuesta de valor:" y referencias a crear o diseñar una publicación. Si un resultado no valida, no se persiste y se intenta fallback determinista.
 
 ## Sistema visual
 
 - Las imágenes se generan con Pillow y plantillas por tipo: promoción, tip, producto destacado, novedad y recordatorio.
-- El render usa degradados, overlays suaves, CTA visual y footer de marca.
+- El render usa `visual_headline`, `visual_subtitle` y `visual_cta`; no inserta el caption completo en la pieza.
+- Puede incorporar imagen de producto o servicio, logo y datos públicos del negocio.
 - Si existe `static/branding/logo.png`, se incorpora automáticamente como fallback.
 - Si existe un logo guardado desde `Mi negocio`, ese logo pasa a ser el branding activo.
 

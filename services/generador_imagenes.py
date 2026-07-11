@@ -241,12 +241,6 @@ def _channel_to_format(channel: str) -> tuple[str, tuple[int, int]]:
 
 def _resolve_output_dir(generated_dir: str) -> Path:
     output_dir = Path(generated_dir).resolve()
-    allowed_root = (Path.cwd() / "static" / "generated").resolve()
-    if output_dir != allowed_root:
-        try:
-            output_dir.relative_to(allowed_root)
-        except ValueError:
-            output_dir = allowed_root
     output_dir.mkdir(parents=True, exist_ok=True)
     return output_dir
 
@@ -391,7 +385,8 @@ def generate_post_image(post: dict, generated_dir: str, brand_settings: dict) ->
             media_bottom = media_top + frame.height
             y = media_bottom + max(24, metrics["panel_padding"] // 2)
 
-    title_text = post["titulo"].upper() if style.title_case == "upper" else post["titulo"]
+    visual_headline = post.get("visual_headline") or post["titulo"]
+    title_text = visual_headline.upper() if style.title_case == "upper" else visual_headline
     title_font, wrapped_title = _fit_text(
         title_text,
         font_family,
@@ -406,13 +401,14 @@ def generate_post_image(post: dict, generated_dir: str, brand_settings: dict) ->
     title_bbox = draw.multiline_textbbox((inner_left, y), wrapped_title, font=title_font, spacing=max(12, title_font.size // 5))
     y = title_bbox[3] + max(28, metrics["panel_padding"] // 2)
 
+    visual_subtitle = post.get("visual_subtitle") or post["titulo"]
     body_font, wrapped_body = _fit_text(
-        post["texto"],
+        visual_subtitle,
         font_family,
         metrics["body"],
         max(24, metrics["body"] - 10),
         max_text_width,
-        8 if format_name == "story" else 6,
+        3 if format_name == "story" else 2,
         draw,
         bold=False,
     )
@@ -420,23 +416,9 @@ def generate_post_image(post: dict, generated_dir: str, brand_settings: dict) ->
     body_bbox = draw.multiline_textbbox((inner_left, y), wrapped_body, font=body_font, spacing=max(12, body_font.size // 3))
     y = body_bbox[3] + max(26, metrics["panel_padding"] // 2)
 
-    hashtag_line = post.get("hashtags", "").strip() or "#contenido #marketing"
-    hashtag_font, wrapped_hashtags = _fit_text(
-        hashtag_line,
-        font_family,
-        metrics["meta"],
-        max(18, metrics["meta"] - 4),
-        max_text_width,
-        2,
-        draw,
-        bold=False,
-    )
-    draw.multiline_text((inner_left, y), wrapped_hashtags, font=hashtag_font, fill=meta_color, spacing=8)
-    hashtags_bbox = draw.multiline_textbbox((inner_left, y), wrapped_hashtags, font=hashtag_font, spacing=8)
-
     cta_height = metrics["cta_height"]
     footer_block_height = max(90, metrics["panel_padding"] + 30)
-    cta_top = min(max(hashtags_bbox[3] + 34, y + 34), height - margin - footer_block_height - cta_height - 24)
+    cta_top = min(max(body_bbox[3] + 42, y + 34), height - margin - footer_block_height - cta_height - 24)
     cta_bottom = cta_top + cta_height
 
     cta_fill = accent if style.accent_mode in {"minimal", "clean"} else _mix(accent, white, 0.08)
@@ -447,7 +429,7 @@ def generate_post_image(post: dict, generated_dir: str, brand_settings: dict) ->
         fill=cta_fill,
     )
     cta_font = _load_font(font_family, metrics["meta"] + 2, bold=True)
-    cta_text = post.get("cta") or style.cta
+    cta_text = post.get("visual_cta") or post.get("cta") or style.cta
     cta_bbox = draw.textbbox((0, 0), cta_text, font=cta_font)
     cta_text_x = inner_left + 32
     cta_text_y = cta_top + (cta_height - (cta_bbox[3] - cta_bbox[1])) // 2 - 2
@@ -507,16 +489,13 @@ def generate_post_image(post: dict, generated_dir: str, brand_settings: dict) ->
     )
     draw.line((inner_left, footer_y - 18, inner_right, footer_y - 18), fill=_with_alpha(_mix(primary, white, 0.45), 160), width=2)
     draw.multiline_text((inner_left, footer_y), wrapped_footer, font=footer_font, fill=meta_color, spacing=6)
-    tone_font = _load_font(font_family, max(16, metrics["footer"] - 2), bold=False)
-    tone_text = f"Tono visual: {style.visual_tone}"
-    tone_bbox = draw.textbbox((0, 0), tone_text, font=tone_font)
-    draw.text((inner_right - (tone_bbox[2] - tone_bbox[0]), footer_y - 44), tone_text, font=tone_font, fill=meta_color)
-
     output_dir = _resolve_output_dir(generated_dir)
     filename = _build_output_name(post)
     file_path = output_dir / filename
     base.convert("RGB").save(file_path)
 
-    if output_dir.name == "generated":
-        return f"generated/{filename}"
-    return f"generated/{output_dir.name}/{filename}"
+    static_root = (Path.cwd() / "static").resolve()
+    try:
+        return str(file_path.relative_to(static_root))
+    except ValueError:
+        return str(file_path)

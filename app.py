@@ -6,7 +6,7 @@ from pathlib import Path
 from flask import Flask, abort, flash, redirect, render_template, request, send_file, url_for
 
 from config import Config
-from database import init_db
+from database import ensure_runtime_directories, init_db
 from services.calendario import (
     build_calendar_matrix,
     generate_month_content,
@@ -14,6 +14,7 @@ from services.calendario import (
     get_month_posts,
     get_post_by_id,
     month_bounds,
+    regenerate_post_content,
     regenerate_post_image,
 )
 from services.manual_store import (
@@ -79,6 +80,7 @@ def create_app() -> Flask:
     app = Flask(__name__)
     app.config.from_object(Config)
 
+    ensure_runtime_directories(app.config["RUNTIME_DIRS"])
     init_db(app.config["DATABASE_PATH"])
 
     @app.context_processor
@@ -132,6 +134,7 @@ def create_app() -> Flask:
                         uploaded_logo,
                         bucket="logos",
                         prefix="logo",
+                        uploads_dir=app.config["UPLOADS_DIR"],
                     )
                     next_logo_path = new_logo_path
                 profile = upsert_business_profile(
@@ -144,14 +147,14 @@ def create_app() -> Flask:
                 )
                 set_selected_data_source(db_path, next_source, app.config["DATA_SOURCE"])
                 if remove_logo and current_profile.get("logo_path"):
-                    delete_managed_file(db_path, current_profile["logo_path"])
+                    delete_managed_file(db_path, current_profile["logo_path"], app.config["UPLOADS_DIR"])
                 if new_logo_path and current_profile.get("logo_path") and current_profile["logo_path"] != new_logo_path:
-                    delete_managed_file(db_path, current_profile["logo_path"])
+                    delete_managed_file(db_path, current_profile["logo_path"], app.config["UPLOADS_DIR"])
                 flash("Los datos del negocio se guardaron correctamente.", "success")
                 return redirect(url_for("business_view"))
             except ValueError as error:
                 if new_logo_path:
-                    delete_managed_file(db_path, new_logo_path)
+                    delete_managed_file(db_path, new_logo_path, app.config["UPLOADS_DIR"])
                 for message in str(error).splitlines():
                     flash(message, "error")
                 current_profile = empty_business_profile()
@@ -171,7 +174,11 @@ def create_app() -> Flask:
     @app.route("/mi-negocio/logo")
     def business_logo():
         profile = get_business_profile(app.config["DATABASE_PATH"])
-        logo_path = resolve_managed_path(app.config["DATABASE_PATH"], profile.get("logo_path", ""))
+        logo_path = resolve_managed_path(
+            app.config["DATABASE_PATH"],
+            profile.get("logo_path", ""),
+            app.config["UPLOADS_DIR"],
+        )
         if not logo_path:
             abort(404)
         return send_file(logo_path)
@@ -211,12 +218,13 @@ def create_app() -> Flask:
                     uploaded_image,
                     bucket="catalog",
                     prefix="catalogo",
+                    uploads_dir=app.config["UPLOADS_DIR"],
                 )
             create_catalog_item(db_path, request.form, image_path=new_image_path)
             flash("Producto o servicio creado correctamente.", "success")
         except ValueError as error:
             if new_image_path:
-                delete_managed_file(db_path, new_image_path)
+                delete_managed_file(db_path, new_image_path, app.config["UPLOADS_DIR"])
             for message in str(error).splitlines():
                 flash(message, "error")
         return redirect(url_for("catalog_view"))
@@ -238,6 +246,7 @@ def create_app() -> Flask:
                     uploaded_image,
                     bucket="catalog",
                     prefix="catalogo",
+                    uploads_dir=app.config["UPLOADS_DIR"],
                 )
             update_catalog_item(
                 db_path,
@@ -247,13 +256,13 @@ def create_app() -> Flask:
                 remove_image=request.form.get("remove_image") == "1",
             )
             if request.form.get("remove_image") == "1" and current_item.get("image_path"):
-                delete_managed_file(db_path, current_item["image_path"])
+                delete_managed_file(db_path, current_item["image_path"], app.config["UPLOADS_DIR"])
             if new_image_path and current_item.get("image_path") and current_item["image_path"] != new_image_path:
-                delete_managed_file(db_path, current_item["image_path"])
+                delete_managed_file(db_path, current_item["image_path"], app.config["UPLOADS_DIR"])
             flash("Producto o servicio actualizado correctamente.", "success")
         except ValueError as error:
             if new_image_path:
-                delete_managed_file(db_path, new_image_path)
+                delete_managed_file(db_path, new_image_path, app.config["UPLOADS_DIR"])
             for message in str(error).splitlines():
                 flash(message, "error")
         return redirect(url_for("catalog_view", edit=item_id))
@@ -284,7 +293,11 @@ def create_app() -> Flask:
         item = get_catalog_item(app.config["DATABASE_PATH"], item_id)
         if not item:
             abort(404)
-        image_path = resolve_managed_path(app.config["DATABASE_PATH"], item.get("image_path", ""))
+        image_path = resolve_managed_path(
+            app.config["DATABASE_PATH"],
+            item.get("image_path", ""),
+            app.config["UPLOADS_DIR"],
+        )
         if not image_path:
             abort(404)
         return send_file(image_path)
@@ -348,9 +361,13 @@ def create_app() -> Flask:
         post = get_post_by_id(app.config["DATABASE_PATH"], post_id)
         if not post or not post.get("imagen_producto_path"):
             abort(404)
-        image_path = Path(post["imagen_producto_path"])
-        if not image_path.is_absolute():
-            image_path = Path.cwd() / image_path
+        image_path = resolve_managed_path(
+            app.config["DATABASE_PATH"],
+            post["imagen_producto_path"],
+            app.config["UPLOADS_DIR"],
+        )
+        if not image_path:
+            abort(404)
         try:
             return send_file(image_path)
         except FileNotFoundError:
@@ -371,6 +388,40 @@ def create_app() -> Flask:
 
         flash("Imagen generada correctamente.", "success")
         return redirect(url_for("preview_post", post_id=post_id))
+
+    @app.post("/post/<int:post_id>/regenerar")
+    def regenerate_post_content_route(post_id: int):
+        selected_source = _selected_source(app)
+        _, brand_settings = _profile_brand_settings(app)
+        try:
+            regenerated = regenerate_post_content(
+                db_path=app.config["DATABASE_PATH"],
+                post_id=post_id,
+                generated_dir=app.config["GENERATED_DIR"],
+                brand_settings=brand_settings,
+                external_db_path=app.config["NEXAR_COMERCIO_DB"],
+                data_source=selected_source,
+                csv_path=app.config["CSV_DATA_SOURCE_PATH"],
+            )
+        except ValueError as error:
+            flash(f"No se pudo regenerar contenido publicable: {error}", "error")
+            return redirect(url_for("preview_post", post_id=post_id))
+        if not regenerated:
+            flash("La publicación no existe.", "error")
+            return redirect(url_for("calendar_view"))
+
+        flash("Contenido e imagen regenerados correctamente.", "success")
+        return redirect(url_for("preview_post", post_id=post_id))
+
+    @app.route("/post/<int:post_id>/descargar-imagen")
+    def download_post_image(post_id: int):
+        post = get_post_by_id(app.config["DATABASE_PATH"], post_id)
+        if not post or not post.get("imagen_path"):
+            abort(404)
+        image_path = Path(app.static_folder or "static") / post["imagen_path"]
+        if not image_path.exists():
+            abort(404)
+        return send_file(image_path, as_attachment=True, download_name=image_path.name)
 
     return app
 

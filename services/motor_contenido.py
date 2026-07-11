@@ -181,19 +181,20 @@ def _build_manual_item_copy(product: dict, brand_name: str, profile: dict) -> di
     audience = str(profile.get("publico_objetivo") or "tu audiencia ideal").strip()
     category_name = product.get("categoria_nombre") or ""
     price_label = _format_money(product.get("precio_valor"))
-    price_line = f" Podés mencionar un valor de referencia de {price_label}." if price_label else ""
+    price_line = f" Valor de referencia: {price_label}." if price_label else ""
     stock = product.get("stock_valor")
     stock_line = f" Hay {stock} disponibles." if stock not in (None, "") and item_type == "producto" else ""
     category_line = f" dentro de {category_name}" if category_name else ""
     descriptor = "este producto" if item_type == "producto" else "este servicio"
     proposal = str(profile.get("propuesta_valor") or "").strip()
-    proposal_line = f" Propuesta de valor: {proposal}." if proposal else ""
+    proposal_line = f" {proposal}." if proposal else ""
 
     return {
         "tipo": "producto_destacado" if item_type == "producto" else "novedad",
         "titulo": f"{product_name}: propuesta para {audience}",
         "texto": (
-            f"Mostrá {descriptor} {product_name}{category_line} con un tono {tone} y enfocá el mensaje en {goal}."
+            f"{product_name}{category_line} es una opcion concreta para {audience}. "
+            f"Con una comunicacion {tone}, ayuda a avanzar sobre el objetivo de {goal}."
             f"{stock_line}{price_line}{proposal_line}"
         ).strip(),
         "hashtags": _clean_hashtags("#catalogo #negociolocal #marketing", "#manual"),
@@ -214,7 +215,7 @@ def _build_manual_category_copy(category: dict, brand_name: str, profile: dict) 
         "tipo": "novedad",
         "titulo": f"Semana de {category_name}",
         "texto": (
-            f"Agrupá el contenido de {category_name} para que {brand_name} comunique mejor su oferta y avance sobre el objetivo de {goal}."
+            f"{category_name} reune opciones relevantes para que {brand_name} comunique su oferta y avance sobre el objetivo de {goal}."
         ),
         "hashtags": _clean_hashtags("#categoria #catalogo #contenidodigital", "#manual"),
         "cta": "Pedinos opciones según lo que necesitás",
@@ -235,7 +236,8 @@ def _build_manual_goal_copy(brand_name: str, profile: dict) -> dict:
         "tipo": "promocion",
         "titulo": f"Objetivo del mes: {goal}",
         "texto": (
-            f"Prepará una pieza clara para {audience}, resaltando {proposal} y dejando una invitación concreta a escribirle a {brand_name}."
+            f"{audience} puede encontrar en {brand_name} una propuesta clara basada en {proposal}. "
+            f"El proximo paso es escribir para recibir mas informacion."
         ),
         "hashtags": _clean_hashtags("#objetivocomercial #marca #contenido", "#manual"),
         "cta": "Escribinos y te contamos más",
@@ -253,8 +255,8 @@ def _build_tip_copy(brand_name: str) -> dict:
         "tipo": "tip",
         "titulo": "Tip para vender mejor por redes",
         "texto": (
-            f"Mostrá un beneficio puntual, sumá una foto clara y cerrá con una invitación simple a escribirle a {brand_name}. "
-            "Las publicaciones concretas suelen generar mejores respuestas."
+            f"Un beneficio puntual de {brand_name} puede ayudar a resolver una consulta concreta. "
+            "Las publicaciones claras facilitan que la audiencia de el proximo paso."
         ),
         "hashtags": "#tip #contenidocomercial #ventas",
         "cta": "Guardalo para aplicarlo",
@@ -272,8 +274,8 @@ def _build_promo_copy(brand_name: str) -> dict:
         "tipo": "promocion",
         "titulo": f"Promo simple para activar {brand_name}",
         "texto": (
-            "Planteá una acción corta con stock limitado, respuesta por mensaje y un beneficio fácil de entender "
-            "para generar movimiento aunque no haya datos comerciales disponibles."
+            "Una accion clara, con respuesta por mensaje y un beneficio facil de entender, "
+            "puede generar movimiento aunque no haya datos comerciales disponibles."
         ),
         "hashtags": "#promo #oferta #compralocal",
         "cta": "Escribinos para aprovecharla",

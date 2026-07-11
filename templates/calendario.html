@@ -62,31 +62,15 @@
 
               <div class="post-list">
               {% for post in day.posts %}
-                <a class="post-item {% if post.origen_contenido and post.origen_contenido not in ['tip_generico', 'promocion_generica', 'fecha_especial', 'generico'] %}is-real-content{% endif %}" href="{{ url_for('preview_post', post_id=post.id) }}">
+                <a class="post-item" href="{{ url_for('preview_post', post_id=post.id) }}">
                   <small>
                     {{ post.canal }} · {{ post.tipo }}
-                    {% if post.fecha_especial_nombre %}
-                      · {{ post.fecha_especial_nombre }}
-                    {% endif %}
                   </small>
                   <strong>{{ post.titulo }}</strong>
                   <span>
-                    {{ post.estado }}
-                    {% if post.prioridad %}
-                      · prioridad {{ post.prioridad }}
-                    {% endif %}
+                    {{ post.generation_status or post.estado }}
                   </span>
-                  <div class="chip-row">
-                    {% if post.origen_contenido and post.origen_contenido not in ['tip_generico', 'promocion_generica', 'fecha_especial', 'generico'] %}
-                      <span class="chip chip-real">Dato real</span>
-                    {% endif %}
-                    {% if post.producto_nombre %}
-                      <span class="chip">Producto: {{ post.producto_nombre }}</span>
-                    {% endif %}
-                    {% if post.categoria_nombre %}
-                      <span class="chip chip-warn">Categoría: {{ post.categoria_nombre }}</span>
-                    {% endif %}
-                  </div>
+                  <p class="meta" style="margin:0.45rem 0 0;">{{ (post.caption or post.texto)|truncate(120) }}</p>
                 </a>
               {% else %}
                 <small style="color: var(--muted);">Sin contenido planificado.</small>
